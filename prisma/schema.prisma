@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  familyId  String?  @map("family_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  family    Family?  @relation(fields: [familyId], references: [id])
+  
+  recipes         Recipe[]
+  recipeFolders   RecipeFolder[]
+  mealPlans       MealPlan[]
+  createdFamilies Family[] @relation("FamilyCreator")
+
+  @@map("users")
+}
+
+model Family {
+  id        String   @id @default(cuid())
+  name      String
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  creator   User?    @relation("FamilyCreator", fields: [createdBy], references: [id])
+  users     User[]
+  recipes   Recipe[]
+  folders   RecipeFolder[]
+  mealPlans MealPlan[]
+
+  @@map("families")
+}
+
+model Recipe {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  familyId     String   @map("family_id")
+  folderId     String?  @map("folder_id")
+  name         String
+  description  String?
+  ingredients  String   // Stored as JSON string or text since SQLite doesn't have native JSON array support like Postgres usually does better
+  instructions String   // Stored as JSON string or text
+  cookingTime  Int?     @map("cooking_time")
+  servings     Int?
+  imageUrl     String?  @map("image_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family  Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  folder  RecipeFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  
+  mealPlans MealPlan[]
+
+  @@map("recipes")
+}
+
+model RecipeFolder {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  familyId    String   @map("family_id")
+  name        String
+  description String?
+  color       String   @default("#5227FF")
+  icon        String   @default("folder")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family  Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  recipes Recipe[]
+
+  @@map("recipe_folders")
+}
+
+model MealPlan {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  familyId  String   @map("family_id")
+  recipeId  String   @map("recipe_id")
+  date      DateTime // Will store YYYY-MM-DD as Date
+  mealType  String   @map("meal_type")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family  Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  recipe  Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@map("meal_plans")
+}
