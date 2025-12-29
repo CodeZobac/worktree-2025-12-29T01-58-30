@@ -11,5 +11,4 @@ output "application_url" {
 output "deployment_status" {
   description = "Status message"
   value       = "Application deployed successfully"
-  depends_on  = [null_resource.deploy_app]
 }

@@ -11,11 +11,7 @@ while :; do
   
   certbot renew \
     --webroot \
-    --webroot-path=/var/www/certbot \
-    --email "${SSL_EMAIL}" \
-    --agree-tos \
-    --no-eff-email \
-    -d "${DOMAIN_NAME}"
+    --webroot-path=/var/www/certbot
   
   echo "Next renewal check in 12 hours..."
   

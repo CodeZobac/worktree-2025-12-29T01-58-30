@@ -14,7 +14,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -28,9 +28,6 @@ services:
       - ./deploy/nginx/certbot/conf:/etc/letsencrypt
       - ./deploy/nginx/certbot/www:/var/www/certbot
       - ./deploy/certbot-renew.sh:/opt/certbot-renew.sh:ro
-    environment:
-      - DOMAIN_NAME=${domain_name}
-      - SSL_EMAIL=${ssl_email}
     entrypoint: ["/bin/sh", "/opt/certbot-renew.sh"]
     networks:
       - app-network
