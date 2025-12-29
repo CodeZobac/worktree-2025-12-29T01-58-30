@@ -21,6 +21,8 @@ A modern web application for sharing and discovering family recipes. Keep your f
 
 ## Getting Started
 
+### Local Development
+
 1. Clone the repository
 2. Install dependencies:
 
@@ -38,6 +40,27 @@ npm run dev
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
+### Production Deployment
+
+Deploy to your own VM with automated Terraform setup:
+
+```bash
+# Quick start
+cp terraform/terraform.tfvars.example terraform/terraform.tfvars
+# Edit terraform.tfvars with your configuration
+make init
+make deploy
+```
+
+See [QUICK-START.md](QUICK-START.md) for a quick deployment guide or [DEPLOYMENT.md](DEPLOYMENT.md) for comprehensive documentation.
+
+**Deployment Features:**
+- 🚀 One-command deployment with `make deploy`
+- 🔒 Automatic SSL certificate management with Let's Encrypt
+- 🐳 Docker containerization with multi-stage builds
+- 🌐 Nginx reverse proxy with security headers
+- ⚡ Zero-downtime updates
+
 ## Available Commands
 
 ```bash
@@ -54,6 +77,22 @@ npm run lint     # Run ESLint
 - `/lib` - Utilities, services, and business logic
 - `/types` - TypeScript type definitions
 - `/public` - Static assets
+- `/terraform` - Infrastructure as Code (Terraform)
+- `/deploy` - Deployment configurations (Docker, Nginx)
+
+## Deployment
+
+This project includes a complete automated deployment solution:
+
+- **Terraform** for infrastructure provisioning
+- **Docker & Docker Compose** for containerization
+- **Nginx** as reverse proxy with SSL
+- **Certbot** for automatic SSL certificate management
+- **Makefile** for simple deployment commands
+
+Quick deployment: `make deploy`
+
+Documentation: [DEPLOYMENT.md](DEPLOYMENT.md) | [QUICK-START.md](QUICK-START.md)
 
 ## Contributing
 
