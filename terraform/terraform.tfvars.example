@@ -1,0 +1,30 @@
+# EXAMPLE TERRAFORM VARIABLES FILE
+# Copy this file to terraform.tfvars and fill in your actual values
+# WARNING: terraform.tfvars contains sensitive data and should NEVER be committed to git
+
+# VM Configuration
+vm_host              = "YOUR_VM_IP_ADDRESS"
+vm_user              = "root"
+ssh_private_key_path = "/path/to/your/ssh/private/key"
+
+# Domain Configuration
+domain_name = "yourdomain.com"
+ssl_email   = "your-email@example.com"
+
+# Application Configuration
+app_port = 3000
+
+# NextAuth Configuration
+nextauth_secret = "GENERATE_WITH: openssl rand -base64 32"
+nextauth_url    = "https://yourdomain.com"
+
+# Google OAuth Configuration
+google_client_id     = "YOUR_GOOGLE_CLIENT_ID"
+google_client_secret = "YOUR_GOOGLE_CLIENT_SECRET"
+
+# Supabase Configuration
+database_url               = "postgresql://USER:PASSWORD@HOST:PORT/DATABASE?pgbouncer=true"
+direct_url                 = "postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
+supabase_url               = "https://YOUR_PROJECT.supabase.co"
+supabase_anon_key          = "YOUR_SUPABASE_ANON_KEY"
+supabase_service_role_key  = "YOUR_SUPABASE_SERVICE_ROLE_KEY"
