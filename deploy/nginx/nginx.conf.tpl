@@ -31,7 +31,7 @@ http {
 
     # Upstream for Next.js app
     upstream nextjs_backend {
-        server app:3000;
+        server app:${app_port};
     }
 
     # HTTP server - redirect to HTTPS

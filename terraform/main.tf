@@ -102,28 +102,21 @@ resource "null_resource" "install_docker" {
     inline = [
       "set -e",
       "export DEBIAN_FRONTEND=noninteractive",
-      
       # Update package list
       "apt-get update -y",
-      
       # Install prerequisites
       "apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release",
-      
       # Add Docker's official GPG key
       "mkdir -p /etc/apt/keyrings",
       "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg",
-      
       # Set up Docker repository
       "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\" | tee /etc/apt/sources.list.d/docker.list > /dev/null",
-      
       # Install Docker
       "apt-get update -y",
       "apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
-      
       # Start and enable Docker
       "systemctl start docker",
       "systemctl enable docker",
-      
       # Verify installation
       "docker --version",
       "docker compose version"
@@ -150,19 +143,14 @@ resource "null_resource" "deploy_app" {
     inline = [
       "set -e",
       "cd /opt/app",
-      
       # Create necessary directories
       "mkdir -p deploy/nginx/certbot/conf deploy/nginx/certbot/www",
-      
       # Stop any existing containers
       "docker compose down || true",
-      
       # Build and start services
       "docker compose up -d --build",
-      
       # Wait for services to be ready
       "sleep 10",
-      
       # Show running containers
       "docker compose ps"
     ]

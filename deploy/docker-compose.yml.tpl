@@ -27,7 +27,11 @@ services:
     volumes:
       - ./deploy/nginx/certbot/conf:/etc/letsencrypt
       - ./deploy/nginx/certbot/www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot --webroot-path=/var/www/certbot --email ${ssl_email} --agree-tos --no-eff-email -d ${domain_name}; sleep 12h & wait $${!}; done;'"
+      - ./deploy/certbot-renew.sh:/opt/certbot-renew.sh:ro
+    environment:
+      - DOMAIN_NAME=${domain_name}
+      - SSL_EMAIL=${ssl_email}
+    entrypoint: ["/bin/sh", "/opt/certbot-renew.sh"]
     networks:
       - app-network
     depends_on:
