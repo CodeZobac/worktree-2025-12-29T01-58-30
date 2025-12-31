@@ -1,4 +1,4 @@
-.PHONY: help init plan apply deploy destroy clean validate
+.PHONY: help init plan apply deploy destroy clean validate backup
 
 # Default target
 help:
@@ -10,12 +10,21 @@ help:
 	@echo "  make validate   - Validate Terraform configuration"
 	@echo "  make destroy    - Destroy all infrastructure"
 	@echo "  make clean      - Clean Terraform state and cache files"
+	@echo "  make backup     - Trigger manual backup of SQLite database"
+	@echo "  make ssh        - SSH into the VM"
+	@echo "  make logs       - View application logs"
+	@echo "  make status     - Check Docker container status"
 	@echo ""
 	@echo "Quick Start:"
 	@echo "  1. Copy terraform/terraform.tfvars.example to terraform/terraform.tfvars"
 	@echo "  2. Edit terraform/terraform.tfvars with your configuration"
 	@echo "  3. Run: make init"
 	@echo "  4. Run: make deploy"
+	@echo ""
+	@echo "Data Storage:"
+	@echo "  - SQLite database: /opt/app/data/dev.db (on VM)"
+	@echo "  - Uploaded images: /opt/app/uploads/ (on VM)"
+	@echo "  - Backups: /opt/app/backups/ (on VM, daily at 2 AM)"
 
 # Initialize Terraform
 init:
@@ -118,3 +127,29 @@ status:
 	VM_USER=$$(grep "^vm_user" terraform/terraform.tfvars | cut -d'"' -f2); \
 	SSH_KEY=$$(grep "^ssh_private_key_path" terraform/terraform.tfvars | cut -d'"' -f2); \
 	ssh -i $$SSH_KEY $$VM_USER@$$VM_HOST 'cd /opt/app && docker compose ps'
+
+# Trigger manual backup of SQLite database
+backup:
+	@if [ ! -f terraform/terraform.tfvars ]; then \
+		echo "ERROR: terraform/terraform.tfvars not found!"; \
+		exit 1; \
+	fi
+	@echo "==> Triggering manual backup..."
+	@VM_HOST=$$(grep "^vm_host" terraform/terraform.tfvars | cut -d'"' -f2); \
+	VM_USER=$$(grep "^vm_user" terraform/terraform.tfvars | cut -d'"' -f2); \
+	SSH_KEY=$$(grep "^ssh_private_key_path" terraform/terraform.tfvars | cut -d'"' -f2); \
+	RETENTION=$$(grep "^backup_retention_days" terraform/terraform.tfvars | cut -d'=' -f2 | tr -d ' ' || echo "7"); \
+	ssh -i $$SSH_KEY $$VM_USER@$$VM_HOST "/opt/app/deploy/backup.sh $$RETENTION"
+	@echo "==> Backup complete!"
+
+# List available backups
+list-backups:
+	@if [ ! -f terraform/terraform.tfvars ]; then \
+		echo "ERROR: terraform/terraform.tfvars not found!"; \
+		exit 1; \
+	fi
+	@echo "==> Available backups:"
+	@VM_HOST=$$(grep "^vm_host" terraform/terraform.tfvars | cut -d'"' -f2); \
+	VM_USER=$$(grep "^vm_user" terraform/terraform.tfvars | cut -d'"' -f2); \
+	SSH_KEY=$$(grep "^ssh_private_key_path" terraform/terraform.tfvars | cut -d'"' -f2); \
+	ssh -i $$SSH_KEY $$VM_USER@$$VM_HOST 'ls -lah /opt/app/backups/'

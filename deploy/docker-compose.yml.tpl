@@ -11,10 +11,17 @@ services:
       - .env.production
     ports:
       - "${app_port}:3000"
+    volumes:
+      # Bind mount for SQLite database persistence
+      - /opt/app/data:/app/prisma
+      # Bind mount for uploaded images
+      - /opt/app/uploads:/app/public/uploads
+      # Bind mount for backups (read-only for app)
+      - /opt/app/backups:/backups:ro
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/auth/providers', (r) => process.exit(r.statusCode >= 200 && r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -22,9 +22,6 @@ nextauth_url    = "https://yourdomain.com"
 google_client_id     = "YOUR_GOOGLE_CLIENT_ID"
 google_client_secret = "YOUR_GOOGLE_CLIENT_SECRET"
 
-# Supabase Configuration
-database_url               = "postgresql://USER:PASSWORD@HOST:PORT/DATABASE?pgbouncer=true"
-direct_url                 = "postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
-supabase_url               = "https://YOUR_PROJECT.supabase.co"
-supabase_anon_key          = "YOUR_SUPABASE_ANON_KEY"
-supabase_service_role_key  = "YOUR_SUPABASE_SERVICE_ROLE_KEY"
+# Backup Configuration
+# Number of days to retain SQLite database backups (default: 7)
+backup_retention_days = 7

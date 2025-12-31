@@ -47,37 +47,14 @@ variable "google_client_secret" {
   sensitive   = true
 }
 
-variable "database_url" {
-  description = "Database URL (Supabase PostgreSQL)"
-  type        = string
-  sensitive   = true
-}
-
-variable "direct_url" {
-  description = "Direct database URL for migrations"
-  type        = string
-  sensitive   = true
-}
-
-variable "supabase_url" {
-  description = "Supabase project URL"
-  type        = string
-}
-
-variable "supabase_anon_key" {
-  description = "Supabase anonymous key"
-  type        = string
-  sensitive   = true
-}
-
-variable "supabase_service_role_key" {
-  description = "Supabase service role key"
-  type        = string
-  sensitive   = true
-}
-
 variable "app_port" {
   description = "Port for the Next.js application"
   type        = number
   default     = 3000
+}
+
+variable "backup_retention_days" {
+  description = "Number of days to retain SQLite database backups"
+  type        = number
+  default     = 7
 }

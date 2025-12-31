@@ -13,13 +13,10 @@ locals {
   env_content = <<-EOT
     NEXTAUTH_SECRET=${var.nextauth_secret}
     NEXTAUTH_URL=${var.nextauth_url}
+    AUTH_TRUST_HOST=true
     GOOGLE_CLIENT_ID=${var.google_client_id}
     GOOGLE_CLIENT_SECRET=${var.google_client_secret}
-    DATABASE_URL=${var.database_url}
-    DIRECT_URL=${var.direct_url}
-    NEXT_PUBLIC_SUPABASE_URL=${var.supabase_url}
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=${var.supabase_anon_key}
-    SUPABASE_SERVICE_ROLE_KEY=${var.supabase_service_role_key}
+    DATABASE_URL=file:/app/prisma/dev.db
     NODE_ENV=production
   EOT
 
@@ -35,15 +32,23 @@ locals {
   })
 }
 
-# Copy deployment files to VM
-resource "null_resource" "copy_files" {
+# First, prepare the VM directories with proper permissions
+resource "null_resource" "prepare_vm" {
   triggers = {
-    always_run = timestamp()
+    vm_host = var.vm_host
   }
 
-  provisioner "file" {
-    source      = "${path.module}/../"
-    destination = "/opt/app"
+  provisioner "remote-exec" {
+    inline = [
+      "set -e",
+      "echo 'Preparing VM directories...'",
+      "sudo mkdir -p /opt/app",
+      "sudo mkdir -p /opt/app/data /opt/app/uploads /opt/app/backups",
+      "sudo mkdir -p /opt/app/deploy/nginx/certbot/conf /opt/app/deploy/nginx/certbot/www",
+      "sudo chown -R ${var.vm_user}:${var.vm_user} /opt/app",
+      "sudo chmod -R 755 /opt/app",
+      "echo 'VM directories prepared successfully!'"
+    ]
 
     connection {
       type        = "ssh"
@@ -51,6 +56,35 @@ resource "null_resource" "copy_files" {
       user        = var.vm_user
       private_key = file(var.ssh_private_key_path)
     }
+  }
+}
+
+# Copy deployment files to VM using rsync (excludes node_modules, .git, etc.)
+resource "null_resource" "copy_files" {
+  depends_on = [null_resource.prepare_vm]
+
+  triggers = {
+    always_run = timestamp()
+  }
+
+  # Use local-exec with rsync for better control over what gets copied
+  provisioner "local-exec" {
+    command = <<-EOT
+      rsync -avz --progress \
+        --exclude 'node_modules' \
+        --exclude '.next' \
+        --exclude '.git' \
+        --exclude 'terraform/.terraform' \
+        --exclude 'terraform/*.tfstate*' \
+        --exclude 'terraform/terraform.tfvars' \
+        --exclude '.env*' \
+        --exclude '*.log' \
+        --exclude '.vscode' \
+        --exclude 'coverage' \
+        --exclude '.DS_Store' \
+        -e "ssh -i ${var.ssh_private_key_path} -o StrictHostKeyChecking=no" \
+        ${path.module}/../ ${var.vm_user}@${var.vm_host}:/opt/app/
+    EOT
   }
 
   provisioner "file" {
@@ -103,23 +137,28 @@ resource "null_resource" "install_docker" {
       "set -e",
       "export DEBIAN_FRONTEND=noninteractive",
       # Update package list
-      "apt-get update -y",
+      "sudo apt-get update -y",
       # Install prerequisites
-      "apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release",
+      "sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release",
       # Add Docker's official GPG key
-      "mkdir -p /etc/apt/keyrings",
-      "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg",
+      "sudo mkdir -p /etc/apt/keyrings",
+      "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg --yes",
       # Set up Docker repository
-      "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\" | tee /etc/apt/sources.list.d/docker.list > /dev/null",
+      "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
       # Install Docker
-      "apt-get update -y",
-      "apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
+      "sudo apt-get update -y",
+      "sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
+      # Add user to docker group
+      "sudo usermod -aG docker ${var.vm_user}",
       # Start and enable Docker
-      "systemctl start docker",
-      "systemctl enable docker",
+      "sudo systemctl start docker",
+      "sudo systemctl enable docker",
+      # Setup swap space for low-memory VMs (needed for Next.js build)
+      "if [ ! -f /swapfile ]; then sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile && echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab; fi",
       # Verify installation
       "docker --version",
-      "docker compose version"
+      "docker compose version",
+      "free -h"
     ]
 
     connection {
@@ -143,16 +182,29 @@ resource "null_resource" "deploy_app" {
     inline = [
       "set -e",
       "cd /opt/app",
-      # Create necessary directories
+      # Create necessary directories for SSL, SQLite data, uploads, and backups
       "mkdir -p deploy/nginx/certbot/conf deploy/nginx/certbot/www",
+      "mkdir -p /opt/app/data /opt/app/uploads /opt/app/backups",
+      # Set proper permissions for data directories
+      "chmod 755 /opt/app/data /opt/app/uploads /opt/app/backups",
+      # Make backup script executable
+      "chmod +x /opt/app/deploy/backup.sh || true",
+      # Install cron and sqlite3 if not present
+      "sudo apt-get install -y cron sqlite3",
+      # Setup daily backup cron job at 2 AM
+      "(crontab -l 2>/dev/null | grep -v 'backup.sh'; echo '0 2 * * * /opt/app/deploy/backup.sh ${var.backup_retention_days}') | crontab -",
+      # Ensure cron is running
+      "sudo systemctl enable cron && sudo systemctl start cron",
       # Stop any existing containers
-      "docker compose down || true",
+      "sudo docker compose down || true",
       # Build and start services
-      "docker compose up -d --build",
+      "sudo docker compose up -d --build",
       # Wait for services to be ready
       "sleep 10",
+      # Run database migrations
+      "sudo docker compose exec -T app npx prisma db push || true",
       # Show running containers
-      "docker compose ps"
+      "sudo docker compose ps"
     ]
 
     connection {
