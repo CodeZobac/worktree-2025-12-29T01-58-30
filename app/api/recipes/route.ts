@@ -80,6 +80,7 @@ export async function GET(request: NextRequest) {
       // Let's safe parse them to be sure, assuming frontend wants arrays.
       ingredients: typeof recipe.ingredients === 'string' ? JSON.parse(recipe.ingredients) : recipe.ingredients,
       instructions: typeof recipe.instructions === 'string' ? JSON.parse(recipe.instructions) : recipe.instructions,
+      categoryIds: typeof recipe.categoryIds === 'string' ? JSON.parse(recipe.categoryIds) : (recipe.categoryIds || []),
     }));
 
     return NextResponse.json(transformedRecipes);
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { name, description, ingredients, instructions, cookingTime, servings, imageFile, folderId } = body;
+    const { name, description, ingredients, instructions, cookingTime, servings, imageFile, folderId, categoryIds } = body;
 
     // Validate required fields
     if (!name || !ingredients || !instructions) {
@@ -128,6 +129,14 @@ export async function POST(request: NextRequest) {
     if (!Array.isArray(ingredients) || ingredients.length === 0) {
       return NextResponse.json(
         { error: { message: 'Ingredients must be a non-empty array', code: 'VALIDATION_ERROR' } },
+        { status: 400 }
+      );
+    }
+
+    // Validate categoryIds - at least one category required
+    if (!categoryIds || !Array.isArray(categoryIds) || categoryIds.length === 0) {
+      return NextResponse.json(
+        { error: { message: 'At least one category is required', code: 'VALIDATION_ERROR' } },
         { status: 400 }
       );
     }
@@ -162,6 +171,7 @@ export async function POST(request: NextRequest) {
         servings: servings || null,
         imageUrl,
         folderId: folderId || null,
+        categoryIds: JSON.stringify(categoryIds), // Store category IDs as JSON
       },
       include: {
         user: {
@@ -180,6 +190,7 @@ export async function POST(request: NextRequest) {
       ...recipe,
       ingredients: JSON.parse(recipe.ingredients),
       instructions: JSON.parse(recipe.instructions),
+      categoryIds: JSON.parse(recipe.categoryIds),
     };
 
     return NextResponse.json(responseRecipe, { status: 201 });

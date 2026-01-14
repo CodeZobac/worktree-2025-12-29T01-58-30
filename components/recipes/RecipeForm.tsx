@@ -1,12 +1,25 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { FormLoadingOverlay } from '@/components/loading';
 import ImageUpload from './ImageUpload';
 import CreateFolderModal from './CreateFolderModal';
-import { MarkdownEditor } from '@/components/markdown';
+import { TrixEditor, useTrixAttachment, type TrixEditorRef } from '@/react-trix';
 import { Recipe, RecipeFormData, RecipeFolder, RecipeFolderFormData } from '@/types';
+import { Check, Plus, X } from 'lucide-react';
+
+// Predefined categories with Portuguese names
+const PREDEFINED_CATEGORIES = [
+  { name: 'Sobremesa', icon: '🍰', color: '#ec4899' },
+  { name: 'Entrada', icon: '🥗', color: '#10b981' },
+  { name: 'Prato Principal', icon: '🍽️', color: '#f97316' },
+  { name: 'Peixe', icon: '🐟', color: '#3b82f6' },
+  { name: 'Carne', icon: '🥩', color: '#ef4444' },
+  { name: 'Vegetariano', icon: '🥬', color: '#22c55e' },
+  { name: 'Lanche', icon: '🥪', color: '#f59e0b' },
+  { name: 'Pequeno Almoço', icon: '🥐', color: '#8b5cf6' },
+];
 
 interface RecipeFormProps {
   recipe?: Recipe;
@@ -31,6 +44,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     cookingTime: recipe?.cookingTime || undefined,
     servings: recipe?.servings || undefined,
     folderId: initialFolderId || recipe?.folderId || undefined,
+    categoryIds: recipe?.categoryIds || [],
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,6 +52,52 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   const [folders, setFolders] = useState<RecipeFolder[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(true);
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
+
+  // Refs for Trix editors
+  const descriptionEditorRef = useRef<TrixEditorRef>(null);
+  const instructionsEditorRef = useRef<TrixEditorRef>(null);
+
+  // Setup image upload handler for Trix attachments
+  const uploadHandler = async (
+    file: File,
+    { setProgress, setAttributes }: { setProgress: (n: number) => void; setAttributes: (attrs: Record<string, unknown>) => void }
+  ) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      setProgress(10);
+      const response = await fetch('/api/uploads', {
+        method: 'POST',
+        body: formData,
+      });
+      setProgress(80);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Upload failed');
+      }
+      
+      const { url, href } = await response.json();
+      setAttributes({ url, href });
+      setProgress(100);
+    } catch (error) {
+      console.error('Image upload error:', error);
+      throw error;
+    }
+  };
+
+  useTrixAttachment(descriptionEditorRef, {
+    onUpload: uploadHandler,
+    maxFileSize: 5 * 1024 * 1024,
+    allowedTypes: ['image/*'],
+  });
+
+  useTrixAttachment(instructionsEditorRef, {
+    onUpload: uploadHandler,
+    maxFileSize: 5 * 1024 * 1024,
+    allowedTypes: ['image/*'],
+  });
 
   // Fetch folders on mount
   useEffect(() => {
@@ -47,6 +107,9 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         if (response.ok) {
           const data = await response.json();
           setFolders(data);
+          
+          // Initialize predefined categories if they don't exist
+          await ensurePredefinedCategories(data);
         }
       } catch (error) {
         console.error('Error fetching folders:', error);
@@ -56,6 +119,36 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     };
     fetchFolders();
   }, []);
+
+  // Ensure predefined categories exist in the database
+  const ensurePredefinedCategories = async (existingFolders: RecipeFolder[]) => {
+    const existingNames = existingFolders.map(f => f.name.toLowerCase());
+    const missingCategories = PREDEFINED_CATEGORIES.filter(
+      cat => !existingNames.includes(cat.name.toLowerCase())
+    );
+
+    // Create missing predefined categories
+    for (const category of missingCategories) {
+      try {
+        const response = await fetch('/api/folders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: category.name,
+            icon: category.icon,
+            color: category.color,
+          }),
+        });
+        
+        if (response.ok) {
+          const newFolder = await response.json();
+          setFolders(prev => [...prev, newFolder]);
+        }
+      } catch (error) {
+        console.error(`Error creating predefined category ${category.name}:`, error);
+      }
+    }
+  };
 
   // Update folderId when initialFolderId changes
   useEffect(() => {
@@ -115,6 +208,29 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     }
   };
 
+  // Handle category selection (multi-select)
+  const toggleCategory = (folderId: string) => {
+    setFormData((prev) => {
+      const currentIds = prev.categoryIds || [];
+      const isSelected = currentIds.includes(folderId);
+      
+      const newCategoryIds = isSelected
+        ? currentIds.filter(id => id !== folderId)
+        : [...currentIds, folderId];
+      
+      return { ...prev, categoryIds: newCategoryIds };
+    });
+    
+    // Clear category error if at least one is selected
+    if (errors.categoryIds) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.categoryIds;
+        return newErrors;
+      });
+    }
+  };
+
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -139,6 +255,11 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       newErrors.servings = 'Servings must be positive';
     }
 
+    // Require at least one category
+    if (!formData.categoryIds || formData.categoryIds.length === 0) {
+      newErrors.categoryIds = 'Please select at least one category';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -160,6 +281,8 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         // Convert string values to numbers for cookingTime and servings
         cookingTime: formData.cookingTime ? Number(formData.cookingTime) : undefined,
         servings: formData.servings ? Number(formData.servings) : undefined,
+        // Keep first category as folderId for backward compatibility
+        folderId: formData.categoryIds && formData.categoryIds.length > 0 ? formData.categoryIds[0] : undefined,
       };
 
       await onSubmit(cleanedData);
@@ -182,7 +305,8 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create folder');
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Failed to create folder');
       }
 
       const newFolder: RecipeFolder = await response.json();
@@ -190,14 +314,35 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       // Update folders list
       setFolders((prev) => [...prev, newFolder]);
 
-      // Select the new folder
-      setFormData((prev) => ({ ...prev, folderId: newFolder.id }));
+      // Auto-select the new category
+      setFormData((prev) => ({
+        ...prev,
+        categoryIds: [...(prev.categoryIds || []), newFolder.id],
+      }));
+      
+      // Clear category error if exists
+      if (errors.categoryIds) {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors.categoryIds;
+          return newErrors;
+        });
+      }
 
     } catch (error) {
       console.error('Error creating folder:', error);
       throw error;
     }
   };
+
+  // Sort folders: predefined first, then user-created
+  const sortedFolders = [...folders].sort((a, b) => {
+    const aPredefined = PREDEFINED_CATEGORIES.some(p => p.name.toLowerCase() === a.name.toLowerCase());
+    const bPredefined = PREDEFINED_CATEGORIES.some(p => p.name.toLowerCase() === b.name.toLowerCase());
+    if (aPredefined && !bPredefined) return -1;
+    if (!aPredefined && bPredefined) return 1;
+    return a.name.localeCompare(b.name);
+  });
 
   return (
     <>
@@ -224,19 +369,79 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           {errors.name && <p id="name-error" className="mt-1 text-sm text-red-600" role="alert">{errors.name}</p>}
         </div>
 
+        {/* Categories Selection - Multi-select */}
+        <div>
+          <div className="flex justify-between items-center mb-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Categories * <span className="text-gray-400 font-normal">(select at least one)</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => setIsCreateFolderModalOpen(true)}
+              className="text-xs font-medium text-orange-600 hover:text-orange-700 flex items-center gap-1"
+            >
+              <Plus className="w-3 h-3" />
+              New Category
+            </button>
+          </div>
+          
+          {loadingFolders ? (
+            <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 animate-pulse">
+              Loading categories...
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* Category chips */}
+              <div className="flex flex-wrap gap-2">
+                {sortedFolders.map((folder) => {
+                  const isSelected = formData.categoryIds?.includes(folder.id);
+                  return (
+                    <motion.button
+                      key={folder.id}
+                      type="button"
+                      onClick={() => toggleCategory(folder.id)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all border-2 ${
+                        isSelected
+                          ? 'text-white border-transparent shadow-md'
+                          : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                      }`}
+                      style={isSelected ? { backgroundColor: folder.color } : undefined}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <span>{folder.icon}</span>
+                      <span>{folder.name}</span>
+                      {isSelected && <Check className="w-4 h-4" />}
+                    </motion.button>
+                  );
+                })}
+              </div>
+              
+              {/* Selected categories summary */}
+              {formData.categoryIds && formData.categoryIds.length > 0 && (
+                <div className="text-sm text-gray-500">
+                  Selected: {formData.categoryIds.length} {formData.categoryIds.length === 1 ? 'category' : 'categories'}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {errors.categoryIds && (
+            <p className="mt-2 text-sm text-red-600" role="alert">{errors.categoryIds}</p>
+          )}
+        </div>
+
         {/* Description */}
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
             Description
           </label>
-          <MarkdownEditor
-            id="description"
-            name="description"
-            value={formData.description || ''}
-            onChange={(value) => setFormData((prev) => ({ ...prev, description: value }))}
-            rows={3}
-            placeholder="Brief description of the recipe (markdown supported)"
+          <TrixEditor
+            ref={descriptionEditorRef}
+            initialValue={formData.description || ''}
+            onValueChange={(value) => setFormData((prev) => ({ ...prev, description: value }))}
+            placeholder="Brief description of the recipe"
             aria-label="Recipe description"
+            className="min-h-[120px]"
           />
         </div>
 
@@ -288,17 +493,15 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           <label htmlFor="instructions" className="block text-sm font-medium text-gray-700 mb-2">
             Instructions *
           </label>
-          <MarkdownEditor
-            id="instructions"
-            name="instructions"
-            value={formData.instructions}
-            onChange={(value) => setFormData((prev) => ({ ...prev, instructions: value }))}
-            rows={10}
-            placeholder="Step-by-step instructions (markdown supported)"
+          <TrixEditor
+            ref={instructionsEditorRef}
+            initialValue={formData.instructions}
+            onValueChange={(value) => setFormData((prev) => ({ ...prev, instructions: value }))}
+            placeholder="Step-by-step instructions"
             aria-required={true}
             aria-invalid={!!errors.instructions}
             aria-describedby={errors.instructions ? 'instructions-error' : undefined}
-            className={errors.instructions ? 'border-red-500' : ''}
+            className={`min-h-[300px] ${errors.instructions ? 'border-red-500' : ''}`}
           />
           {errors.instructions && <p id="instructions-error" className="mt-1 text-sm text-red-600" role="alert">{errors.instructions}</p>}
         </div>
@@ -341,62 +544,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
             {errors.servings && <p className="mt-1 text-sm text-red-600">{errors.servings}</p>}
           </div>
         </div>
-
-        {/* Folder Selection */}
-        {!hideFolderSelector && (
-          <div className="relative">
-            <div className="flex justify-between items-center mb-2">
-              <label htmlFor="folderId" className="block text-sm font-medium text-gray-700">
-                Folder {initialFolderId ? '(Pre-selected)' : '(Optional)'}
-              </label>
-              <button
-                type="button"
-                onClick={() => setIsCreateFolderModalOpen(true)}
-                disabled={!!initialFolderId}
-                className="text-xs font-medium text-orange-600 hover:text-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                New Folder
-              </button>
-            </div>
-            {loadingFolders ? (
-              <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 animate-pulse">
-                Loading folders...
-              </div>
-            ) : (
-              <select
-                id="folderId"
-                name="folderId"
-                value={formData.folderId || ''}
-                onChange={handleInputChange}
-                disabled={!!initialFolderId}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent touch-manipulation ${initialFolderId ? 'bg-gray-50 cursor-not-allowed' : ''
-                  }`}
-              >
-                <option value="">No folder</option>
-                {folders.map((folder) => (
-                  <option key={folder.id} value={folder.id}>
-                    {folder.icon} {folder.name}
-                  </option>
-                ))}
-              </select>
-            )}
-            <p className="mt-1 text-sm text-gray-500">
-              {initialFolderId
-                ? 'This recipe will be saved to the current folder'
-                : 'Organize your recipes into folders like "Vegetarian", "Desserts", etc.'
-              }
-            </p>
-          </div>
-        )}
-
-        <CreateFolderModal
-          isOpen={isCreateFolderModalOpen}
-          onClose={() => setIsCreateFolderModalOpen(false)}
-          onSubmit={handleCreateFolder}
-        />
 
         {/* Image Upload */}
         <div>
@@ -453,6 +600,11 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         </div>
       </form>
 
+      <CreateFolderModal
+        isOpen={isCreateFolderModalOpen}
+        onClose={() => setIsCreateFolderModalOpen(false)}
+        onSubmit={handleCreateFolder}
+      />
     </>
   );
 };

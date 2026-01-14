@@ -62,6 +62,7 @@ export async function GET(
       ...recipe,
       ingredients: typeof recipe.ingredients === 'string' ? JSON.parse(recipe.ingredients) : recipe.ingredients,
       instructions: typeof recipe.instructions === 'string' ? JSON.parse(recipe.instructions) : recipe.instructions,
+      categoryIds: typeof recipe.categoryIds === 'string' ? JSON.parse(recipe.categoryIds) : (recipe.categoryIds || []),
     };
 
     return NextResponse.json(transformedRecipe);
@@ -125,7 +126,7 @@ export async function PUT(
 
     // Parse body
     const body = await request.json();
-    const { name, description, ingredients, instructions, cookingTime, servings, imageFile, folderId } = body;
+    const { name, description, ingredients, instructions, cookingTime, servings, imageFile, folderId, categoryIds } = body;
 
     let imageUrl = existingRecipe.imageUrl;
 
@@ -157,6 +158,7 @@ export async function PUT(
     if (servings !== undefined) updateData.servings = servings;
     if (imageUrl !== existingRecipe.imageUrl) updateData.imageUrl = imageUrl;
     if (folderId !== undefined) updateData.folderId = folderId || null;
+    if (categoryIds !== undefined) updateData.categoryIds = JSON.stringify(categoryIds);
 
     const updatedRecipe = await prisma.recipe.update({
       where: { id },
@@ -177,6 +179,7 @@ export async function PUT(
       ...updatedRecipe,
       ingredients: JSON.parse(updatedRecipe.ingredients),
       instructions: JSON.parse(updatedRecipe.instructions),
+      categoryIds: typeof updatedRecipe.categoryIds === 'string' ? JSON.parse(updatedRecipe.categoryIds) : (updatedRecipe.categoryIds || []),
     };
 
     return NextResponse.json(responseRecipe);

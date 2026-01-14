@@ -1,5 +1,6 @@
 // Recipe Components
 export { default as RecipeCard3D } from './RecipeCard3D';
+export { default as RecipeStackCard } from './RecipeStackCard';
 export { default as RecipeDetail } from './RecipeDetail';
 export { default as RecipeForm } from './RecipeForm';
 export { default as RecipeList } from './RecipeList';
