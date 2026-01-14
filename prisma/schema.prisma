@@ -14,15 +14,18 @@ model User {
   name      String?
   image     String?
   familyId  String?  @map("family_id")
+  houseId   String?  @map("house_id")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   family    Family?  @relation(fields: [familyId], references: [id])
+  house     House?   @relation(fields: [houseId], references: [id])
   
   recipes         Recipe[]
   recipeFolders   RecipeFolder[]
   mealPlans       MealPlan[]
   createdFamilies Family[] @relation("FamilyCreator")
+  createdHouses   House[]  @relation("HouseCreator")
 
   @@map("users")
 }
@@ -36,6 +39,7 @@ model Family {
 
   creator   User?    @relation("FamilyCreator", fields: [createdBy], references: [id])
   users     User[]
+  houses    House[]
   recipes   Recipe[]
   folders   RecipeFolder[]
   mealPlans MealPlan[]
@@ -43,11 +47,27 @@ model Family {
   @@map("families")
 }
 
+model House {
+  id        String   @id @default(cuid())
+  familyId  String   @map("family_id")
+  name      String
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  family    Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  creator   User?    @relation("HouseCreator", fields: [createdBy], references: [id])
+  users     User[]
+
+  @@map("houses")
+}
+
 model Recipe {
   id           String   @id @default(cuid())
   userId       String   @map("user_id")
   familyId     String   @map("family_id")
   folderId     String?  @map("folder_id")
+  categoryIds  String   @default("[]") @map("category_ids") // JSON array of category/folder IDs
   name         String
   description  String?
   ingredients  String   // Stored as JSON string or text since SQLite doesn't have native JSON array support like Postgres usually does better

@@ -18,6 +18,15 @@ export interface Family {
   updatedAt: Date;
 }
 
+export interface House {
+  id: string;
+  familyId: string;
+  name: string;
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface RecipeFolder {
   id: string;
   userId: string;
@@ -43,6 +52,7 @@ export interface Recipe {
   servings?: number;
   imageUrl?: string;
   folderId?: string;
+  categoryIds?: string[]; // Array of category/folder IDs
   createdAt: Date;
   updatedAt: Date;
   user?: User; // Populated via join
@@ -54,6 +64,8 @@ export interface FamilyMember {
   name: string;
   image?: string;
   recipeCount: number;
+  houseId?: string;
+  houseName?: string;
 }
 
 export interface RecipeFormData {
@@ -65,6 +77,7 @@ export interface RecipeFormData {
   servings?: number;
   image?: File;
   folderId?: string;
+  categoryIds: string[]; // Required - at least one category
 }
 
 export interface RecipeFolderFormData {
