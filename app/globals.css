@@ -137,3 +137,32 @@
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
+
+/* Command Menu (cmdk) Styles */
+[cmdk-root] {
+  font-family: inherit;
+}
+
+[cmdk-group-heading] {
+  padding: 0.5rem 0.75rem 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+}
+
+[cmdk-group] + [cmdk-group] {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+[cmdk-item][aria-selected="true"] {
+  background: var(--accent);
+  color: white;
+}
+
+[cmdk-item][aria-selected="true"] * {
+  color: white;
+}

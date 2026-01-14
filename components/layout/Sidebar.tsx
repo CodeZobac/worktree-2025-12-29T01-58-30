@@ -1,12 +1,16 @@
 "use client";
 
-import { Plus, X, Copy } from "lucide-react";
+import { Plus, X, Home } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "motion/react";
 import { FamilyMemberList } from "@/components/family/FamilyMemberList";
 import { FamilyMember } from "@/types";
-import { showSuccessToast } from "@/components/toast";
+
+interface House {
+  id: string;
+  name: string;
+}
 
 interface SidebarProps {
   familyMembers: FamilyMember[];
@@ -14,7 +18,7 @@ interface SidebarProps {
   selectedMemberId?: string;
   isMobileOpen?: boolean;
   onClose?: () => void;
-  familyId?: string;
+  houses?: House[];
 }
 
 export function Sidebar({
@@ -23,7 +27,7 @@ export function Sidebar({
   selectedMemberId,
   isMobileOpen = false,
   onClose,
-  familyId,
+  houses = [],
 }: SidebarProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -54,12 +58,40 @@ export function Sidebar({
     handleLinkClick();
   };
 
-  const handleCopyInviteCode = () => {
-    if (familyId) {
-      navigator.clipboard.writeText(familyId);
-      showSuccessToast("Invite code copied to clipboard!");
+  // Group members by house
+  const groupedMembers = useMemo(() => {
+    const groups: { house: House | null; members: FamilyMember[] }[] = [];
+    
+    // Group members by house
+    const houseMap = new Map<string | null, FamilyMember[]>();
+    
+    familyMembers.forEach(member => {
+      const houseId = member.houseId || null;
+      if (!houseMap.has(houseId)) {
+        houseMap.set(houseId, []);
+      }
+      houseMap.get(houseId)!.push(member);
+    });
+
+    // Add houses with members first
+    houses.forEach(house => {
+      const members = houseMap.get(house.id);
+      if (members && members.length > 0) {
+        groups.push({ house, members });
+        houseMap.delete(house.id);
+      }
+    });
+
+    // Add members without a house at the end
+    const noHouseMembers = houseMap.get(null);
+    if (noHouseMembers && noHouseMembers.length > 0) {
+      groups.push({ house: null, members: noHouseMembers });
     }
-  };
+
+    return groups;
+  }, [familyMembers, houses]);
+
+  const hasHouses = houses.length > 0;
 
   return (
     <>
@@ -133,32 +165,38 @@ export function Sidebar({
             Family Members
           </h3>
           {mounted && (
-            <FamilyMemberList
-              members={familyMembers}
-              selectedId={selectedMemberId}
-              onSelect={handleMemberSelect}
-              currentUserId={currentUserId}
-            />
+            hasHouses ? (
+              // Grouped by house view
+              <div className="space-y-4">
+                {groupedMembers.map((group, index) => (
+                  <div key={group.house?.id || 'no-house'}>
+                    {/* House Header */}
+                    <div className="flex items-center gap-2 px-2 mb-2">
+                      <Home className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        {group.house?.name || 'No House'}
+                      </span>
+                    </div>
+                    <FamilyMemberList
+                      members={group.members}
+                      selectedId={selectedMemberId}
+                      onSelect={handleMemberSelect}
+                      currentUserId={currentUserId}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Flat list view (no houses)
+              <FamilyMemberList
+                members={familyMembers}
+                selectedId={selectedMemberId}
+                onSelect={handleMemberSelect}
+                currentUserId={currentUserId}
+              />
+            )
           )}
         </div>
-
-        {/* Invite Code Section */}
-        {familyId && (
-          <div className="p-4 border-t border-sidebar-border">
-            <div className="bg-sidebar-accent/50 rounded-lg p-3">
-              <p className="text-xs font-medium text-muted-foreground mb-1">
-                Invite Code
-              </p>
-              <button
-                onClick={handleCopyInviteCode}
-                className="flex items-center justify-between w-full gap-2 text-sm font-mono bg-background border border-border rounded px-2 py-1.5 hover:bg-accent transition-colors group"
-              >
-                <span className="truncate">{familyId}</span>
-                <Copy className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
-              </button>
-            </div>
-          </div>
-        )}
       </aside>
     </>
   );

@@ -9,6 +9,13 @@ interface FamilyMember {
   name: string;
   image?: string;
   recipeCount: number;
+  houseId?: string;
+  houseName?: string;
+}
+
+interface House {
+  id: string;
+  name: string;
 }
 
 interface MainLayoutClientProps {
@@ -16,6 +23,8 @@ interface MainLayoutClientProps {
   familyMembers: FamilyMember[];
   currentUserId: string;
   familyId?: string;
+  houses?: House[];
+  currentHouseId?: string;
 }
 
 export function MainLayoutClient({
@@ -23,19 +32,26 @@ export function MainLayoutClient({
   familyMembers,
   currentUserId,
   familyId,
+  houses = [],
+  currentHouseId,
 }: MainLayoutClientProps) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar onMenuClick={() => setIsMobileSidebarOpen(true)} />
+      <Navbar 
+        onMenuClick={() => setIsMobileSidebarOpen(true)} 
+        familyId={familyId}
+        houses={houses}
+        currentHouseId={currentHouseId}
+      />
       <div className="flex flex-1">
         <Sidebar
           familyMembers={familyMembers}
           currentUserId={currentUserId}
-          familyId={familyId}
           isMobileOpen={isMobileSidebarOpen}
           onClose={() => setIsMobileSidebarOpen(false)}
+          houses={houses}
         />
 
         {/* Main Content */}
