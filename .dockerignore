@@ -59,6 +59,7 @@ terraform
 
 # Deployment
 deploy
+!deploy/entrypoint.sh
 Makefile
 DEPLOYMENT.md
 

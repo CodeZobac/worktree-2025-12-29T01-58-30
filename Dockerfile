@@ -44,11 +44,13 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+# Copy all node_modules to ensure prisma CLI and dependencies are available
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package.json ./package.json
 
 # Create directories for SQLite database and uploads with proper permissions
-RUN mkdir -p /app/prisma /app/public/uploads && \
+RUN mkdir -p /app/data /app/public/uploads && \
     chown -R nextjs:nodejs /app
 
 USER nextjs
@@ -59,5 +61,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Start the application
-CMD ["node", "server.js"]
+# Start the application (runs prisma db push then node server.js)
+CMD ["npm", "run", "start:prod"]

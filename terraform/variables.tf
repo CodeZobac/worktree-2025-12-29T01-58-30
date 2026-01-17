@@ -24,24 +24,24 @@ variable "ssl_email" {
   type        = string
 }
 
-variable "nextauth_secret" {
+variable "AUTH_SECRET" {
   description = "NextAuth secret for session encryption"
   type        = string
   sensitive   = true
 }
 
-variable "nextauth_url" {
+variable "AUTH_URL" {
   description = "NextAuth URL (e.g., https://yourdomain.com)"
   type        = string
 }
 
-variable "google_client_id" {
+variable "AUTH_GOOGLE_ID" {
   description = "Google OAuth client ID"
   type        = string
   sensitive   = true
 }
 
-variable "google_client_secret" {
+variable "AUTH_GOOGLE_SECRET" {
   description = "Google OAuth client secret"
   type        = string
   sensitive   = true

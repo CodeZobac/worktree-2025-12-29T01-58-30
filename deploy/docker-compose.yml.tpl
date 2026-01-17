@@ -13,7 +13,7 @@ services:
       - "${app_port}:3000"
     volumes:
       # Bind mount for SQLite database persistence
-      - /opt/app/data:/app/prisma
+      - /opt/app/data:/app/data
       # Bind mount for uploaded images
       - /opt/app/uploads:/app/public/uploads
       # Bind mount for backups (read-only for app)

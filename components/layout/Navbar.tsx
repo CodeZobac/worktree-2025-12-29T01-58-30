@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
-import { ChefHat, LogOut, User, Menu, Copy, Home, Settings } from "lucide-react";
+import { LogOut, User, Menu, Copy, Home, Settings } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import AnimatedList from "@/components/AnimatedList";
@@ -54,9 +54,15 @@ export function Navbar({ onMenuClick, familyId, houses = [], currentHouseId }: N
         )}
 
         {/* Logo - Clickable to home */}
-        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <ChefHat className="h-6 w-6 text-primary" />
-          <span className="text-xl font-semibold">Family Recipes</span>
+        <Link href="/" className="hover:opacity-80 transition-opacity">
+          <Image
+            src="/logo.svg"
+            alt="Family Recipes"
+            width={180}
+            height={60}
+            className="w-48 object-contain"
+            priority
+          />
         </Link>
 
         {/* Spacer */}

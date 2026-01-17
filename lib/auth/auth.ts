@@ -55,8 +55,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         return true;
       } catch (error) {
-        console.error('Error in signIn callback:', error);
-        return false;
+        // Log the error but allow sign-in to proceed
+        // User creation will be retried on next request or in jwt callback
+        console.error('Database error in signIn callback (allowing sign-in anyway):', error);
+        // Return true to allow authentication - the user record will be created
+        // lazily when the database becomes available
+        return true;
       }
     },
     async jwt({ token, user, account }) {

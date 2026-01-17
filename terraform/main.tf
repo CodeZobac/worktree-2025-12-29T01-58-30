@@ -11,12 +11,12 @@ terraform {
 # Create .env file content
 locals {
   env_content = <<-EOT
-    NEXTAUTH_SECRET=${var.nextauth_secret}
-    NEXTAUTH_URL=${var.nextauth_url}
+    AUTH_SECRET=${var.AUTH_SECRET}
+    AUTH_URL=${var.AUTH_URL}
     AUTH_TRUST_HOST=true
-    GOOGLE_CLIENT_ID=${var.google_client_id}
-    GOOGLE_CLIENT_SECRET=${var.google_client_secret}
-    DATABASE_URL=file:/app/prisma/dev.db
+    AUTH_GOOGLE_ID=${var.AUTH_GOOGLE_ID}
+    AUTH_GOOGLE_SECRET=${var.AUTH_GOOGLE_SECRET}
+    DATABASE_URL=file:/app/data/dev.db
     NODE_ENV=production
   EOT
 
@@ -70,7 +70,7 @@ resource "null_resource" "copy_files" {
   # Use local-exec with rsync for better control over what gets copied
   provisioner "local-exec" {
     command = <<-EOT
-      rsync -avz --progress \
+      rsync -avz --progress --delete \
         --exclude 'node_modules' \
         --exclude '.next' \
         --exclude '.git' \
@@ -82,6 +82,14 @@ resource "null_resource" "copy_files" {
         --exclude '.vscode' \
         --exclude 'coverage' \
         --exclude '.DS_Store' \
+        --exclude 'data' \
+        --exclude 'public/uploads' \
+        --exclude 'deploy/nginx/certbot/conf' \
+        --exclude 'deploy/nginx/certbot/www' \
+        --exclude 'deploy/nginx/nginx.conf' \
+        --exclude 'docker-compose.yml' \
+        --exclude 'backups' \
+        --exclude 'uploads' \
         -e "ssh -i ${var.ssh_private_key_path} -o StrictHostKeyChecking=no" \
         ${path.module}/../ ${var.vm_user}@${var.vm_host}:/opt/app/
     EOT
@@ -185,8 +193,10 @@ resource "null_resource" "deploy_app" {
       # Create necessary directories for SSL, SQLite data, uploads, and backups
       "mkdir -p deploy/nginx/certbot/conf deploy/nginx/certbot/www",
       "mkdir -p /opt/app/data /opt/app/uploads /opt/app/backups",
-      # Set proper permissions for data directories
-      "chmod 755 /opt/app/data /opt/app/uploads /opt/app/backups",
+      # Set proper permissions for data directories (UID 1001 = nextjs user in container)
+      "sudo chown -R 1001:1001 /opt/app/data /opt/app/uploads",
+      "sudo chmod -R 777 /opt/app/data /opt/app/uploads",
+      "sudo chmod 755 /opt/app/backups",
       # Make backup script executable
       "chmod +x /opt/app/deploy/backup.sh || true",
       # Install cron and sqlite3 if not present
@@ -200,9 +210,10 @@ resource "null_resource" "deploy_app" {
       # Build and start services
       "sudo docker compose up -d --build",
       # Wait for services to be ready
-      "sleep 10",
-      # Run database migrations
-      "sudo docker compose exec -T app npx prisma db push || true",
+      "sleep 15",
+      # Verify database is initialized
+      "echo 'Verifying database status...'",
+      "sudo docker compose logs app --tail 50",
       # Show running containers
       "sudo docker compose ps"
     ]

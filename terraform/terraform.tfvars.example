@@ -15,12 +15,12 @@ ssl_email   = "your-email@example.com"
 app_port = 3000
 
 # NextAuth Configuration
-nextauth_secret = "GENERATE_WITH: openssl rand -base64 32"
-nextauth_url    = "https://yourdomain.com"
+AUTH_SECRET = "GENERATE_WITH: openssl rand -base64 32"
+AUTH_URL    = "https://yourdomain.com"
 
 # Google OAuth Configuration
-google_client_id     = "YOUR_GOOGLE_CLIENT_ID"
-google_client_secret = "YOUR_GOOGLE_CLIENT_SECRET"
+AUTH_GOOGLE_ID     = "YOUR_GOOGLE_CLIENT_ID"
+AUTH_GOOGLE_SECRET = "YOUR_GOOGLE_CLIENT_SECRET"
 
 # Backup Configuration
 # Number of days to retain SQLite database backups (default: 7)
