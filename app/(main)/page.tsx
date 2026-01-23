@@ -1,23 +1,25 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import BlurText from '@/components/BlurText';
 import CountUp from '@/components/CountUp';
-import RecipeList from '@/components/recipes/RecipeList';
+import FolderGrid from '@/components/recipes/FolderGrid';
 import FamilySetupPrompt from '@/components/family/FamilySetupPrompt';
 import { RecipeGridSkeleton } from '@/components/loading';
 import { recipeToasts } from '@/components/toast';
-import { Recipe } from '@/types';
+import { RecipeFolder } from '@/types';
 
 export default function HomePage() {
   const { data: session, status } = useSession();
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const router = useRouter();
+  const [folders, setFolders] = useState<RecipeFolder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasFamily, setHasFamily] = useState<boolean | null>(null);
 
-  const fetchRecipes = async () => {
+  const fetchFolders = async () => {
     // If not authenticated or no user email, stop
     if (status !== 'authenticated' || !session?.user?.id) {
       if (status === 'unauthenticated') {
@@ -31,7 +33,6 @@ export default function HomePage() {
       setError(null);
 
       // Use familyId from session directly
-      // Types are augmented in types/next-auth.d.ts to include familyId
       if (!session.user.familyId) {
         setHasFamily(false);
         setIsLoading(false);
@@ -40,18 +41,18 @@ export default function HomePage() {
 
       setHasFamily(true);
 
-      // Fetch current user's recipes using ID from session
-      const response = await fetch(`/api/recipes?userId=${session.user.id}`);
+      // Fetch folders
+      const response = await fetch('/api/folders');
 
       if (!response.ok) {
-        throw new Error('Failed to fetch recipes');
+        throw new Error('Failed to fetch folders');
       }
 
       const data = await response.json();
-      setRecipes(data);
+      setFolders(data);
     } catch (err) {
-      console.error('Error fetching recipes:', err);
-      setError('Failed to load recipes. Please try again.');
+      console.error('Error fetching folders:', err);
+      setError('Failed to load folders. Please try again.');
       recipeToasts.loadError();
     } finally {
       setIsLoading(false);
@@ -60,11 +61,15 @@ export default function HomePage() {
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
-      fetchRecipes();
+      fetchFolders();
     } else if (status === 'unauthenticated') {
       setIsLoading(false);
     }
   }, [status, session?.user?.id, session?.user?.familyId]);
+
+  const handleFolderClick = (folder: RecipeFolder) => {
+    router.push(`/recipes?folderId=${folder.id}`);
+  };
 
   if (isLoading) {
     return (
@@ -119,31 +124,31 @@ export default function HomePage() {
     <div className="space-y-6">
       {/* Page Title with BlurText */}
       <BlurText
-        text="My Recipes"
+        text="My Recipe Folders"
         delay={150}
         animateBy="words"
         direction="top"
         className="text-4xl font-bold text-foreground"
       />
 
-      {/* Recipe Count with CountUp */}
-      {recipes.length > 0 && (
+      {/* Folder Count with CountUp */}
+      {folders.length > 0 && (
         <div className="flex items-center gap-2 text-muted-foreground">
           <CountUp
-            end={recipes.length}
+            end={folders.length}
             duration={1.5}
             className="text-2xl font-semibold text-primary"
           />
           <span className="text-lg">
-            {recipes.length === 1 ? 'recipe' : 'recipes'}
+            {folders.length === 1 ? 'category' : 'categories'}
           </span>
         </div>
       )}
 
-      {/* Recipe List with AnimatedList wrapper (handled inside RecipeList) */}
-      <RecipeList
-        recipes={recipes}
-        emptyMessage="No recipes yet. Click 'Add Recipe' to create your first recipe!"
+      {/* Folder Grid */}
+      <FolderGrid
+        folders={folders}
+        onFolderClick={handleFolderClick}
       />
     </div>
   );

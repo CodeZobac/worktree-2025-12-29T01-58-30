@@ -8,8 +8,9 @@ export default auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
 
+  const publicRoutes = ["/login", "/privacy", "/terms"];
   const isAuthRoute = nextUrl.pathname === "/login";
-  const isPublicRoute = nextUrl.pathname === "/login";
+  const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
 
   // Allow access to auth routes
   if (isAuthRoute) {

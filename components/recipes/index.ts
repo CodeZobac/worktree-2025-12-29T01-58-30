@@ -13,3 +13,4 @@ export { default as CreateFolderModal } from './CreateFolderModal';
 // Utility Components
 export { default as DeleteConfirmModal } from './DeleteConfirmModal';
 export { default as ImageUpload } from './ImageUpload';
+export { default as BulkIngredientModal } from './BulkIngredientModal';

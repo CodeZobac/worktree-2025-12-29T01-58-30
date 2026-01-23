@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Family Recipes",
-  description: "Share and discover your family's favorite recipes",
+  title: "IN Sintonia",
+  description: "Organize and share your family's favorite recipes together",
 };
 
 export default function RootLayout({

@@ -103,6 +103,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if a folder with the same name already exists for this family (case-insensitive)
+    const existingFolder = await prisma.recipeFolder.findFirst({
+      where: {
+        familyId: userData.familyId,
+        name: {
+          equals: name,
+          mode: 'insensitive'
+        }
+      }
+    });
+
+    if (existingFolder) {
+      // Return the existing folder instead of creating a duplicate
+      return NextResponse.json({ 
+        ...existingFolder, 
+        recipeCount: 0,
+        alreadyExists: true 
+      }, { status: 200 });
+    }
+
     // Create folder
     const folder = await prisma.recipeFolder.create({
       data: {

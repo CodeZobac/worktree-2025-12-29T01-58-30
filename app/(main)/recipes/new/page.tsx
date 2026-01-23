@@ -50,6 +50,7 @@ export default function NewRecipePage() {
           cookingTime: data.cookingTime,
           servings: data.servings,
           folderId: data.folderId,
+          categoryIds: data.categoryIds,
           imageFile,
         }),
       });

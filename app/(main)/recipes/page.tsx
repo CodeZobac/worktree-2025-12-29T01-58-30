@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
-import { Shuffle, Filter, ChefHat, Loader2 } from 'lucide-react';
+import { Shuffle, Filter, ChefHat, Loader2, ArrowLeft } from 'lucide-react';
 import BlurText from '@/components/BlurText';
 import { Stack, StackRef } from '@/components/stack';
 import RecipeStackCard from '@/components/recipes/RecipeStackCard';
@@ -40,17 +40,27 @@ function getCategoryColor(name: string): string {
 export default function RecipesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const stackRef = useRef<StackRef>(null);
   
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [folders, setFolders] = useState<RecipeFolder[]>([]);
   const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [currentFolderName, setCurrentFolderName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasFamily, setHasFamily] = useState<boolean | null>(null);
   const [isShuffling, setIsShuffling] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Get initial folder from URL params
+  useEffect(() => {
+    const folderId = searchParams.get('folderId');
+    if (folderId) {
+      setSelectedFolder(folderId);
+    }
+  }, [searchParams]);
 
   // Fetch recipes and folders
   useEffect(() => {
@@ -91,6 +101,15 @@ export default function RecipesPage() {
         if (foldersRes.ok) {
           const foldersData = await foldersRes.json();
           setFolders(foldersData);
+          
+          // Set current folder name if folderId is in URL
+          const folderId = searchParams.get('folderId');
+          if (folderId) {
+            const folder = foldersData.find((f: RecipeFolder) => f.id === folderId);
+            if (folder) {
+              setCurrentFolderName(folder.name);
+            }
+          }
         }
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -208,14 +227,36 @@ export default function RecipesPage() {
     <div className="min-h-screen p-4 sm:p-6 md:p-8">
       {/* Header */}
       <div className="max-w-4xl mx-auto mb-8">
-        <BlurText
-          text="Recipe Stack"
-          delay={100}
-          className="text-4xl sm:text-5xl font-black text-gray-900 mb-4"
-        />
-        <p className="text-gray-600 text-lg">
-          Swipe through your recipes or tap the top card to view details
-        </p>
+        {currentFolderName ? (
+          <>
+            <button
+              onClick={() => router.push('/')}
+              className="flex items-center gap-2 text-gray-600 hover:text-orange-600 mb-4 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span>Back to Folders</span>
+            </button>
+            <BlurText
+              text={currentFolderName}
+              delay={100}
+              className="text-4xl sm:text-5xl font-black text-gray-900 mb-4"
+            />
+            <p className="text-gray-600 text-lg">
+              {filteredRecipes.length} {filteredRecipes.length === 1 ? 'recipe' : 'recipes'} in this category
+            </p>
+          </>
+        ) : (
+          <>
+            <BlurText
+              text="Recipe Stack"
+              delay={100}
+              className="text-4xl sm:text-5xl font-black text-gray-900 mb-4"
+            />
+            <p className="text-gray-600 text-lg">
+              Swipe through your recipes or tap the top card to view details
+            </p>
+          </>
+        )}
       </div>
 
       {/* Controls */}
