@@ -103,14 +103,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if a folder with the same name already exists for this family (case-insensitive)
+    // Check if a folder with the same name already exists for this family
     const existingFolder = await prisma.recipeFolder.findFirst({
       where: {
         familyId: userData.familyId,
-        name: {
-          equals: name,
-          mode: 'insensitive'
-        }
+        name: name
       }
     });
 
