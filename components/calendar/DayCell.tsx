@@ -25,7 +25,7 @@ export function DayCell({ day, currentMonth, mealPlans, onAddMeal, onDeleteMeal 
     return (
         <div
             className={cn(
-                'min-h-[120px] p-2 border-r border-b border-neutral-200 dark:border-neutral-800 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50 flex flex-col gap-2 group relative',
+                'min-h-[100px] sm:min-h-[120px] p-2 border-r border-b border-neutral-200 dark:border-neutral-800 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50 flex flex-col gap-2 group relative',
                 !isCurrentMonth && 'bg-neutral-50/50 dark:bg-neutral-900/20 text-neutral-400'
             )}
         >
@@ -91,9 +91,9 @@ function MealSlot({ type, meal, onAdd, onDelete }: MealSlotProps) {
                         e.stopPropagation();
                         onDelete(meal.id);
                     }}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/meal:opacity-100 p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded transition-opacity"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 opacity-100 sm:opacity-0 sm:group-hover/meal:opacity-100 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 rounded transition-opacity touch-manipulation"
                 >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className="w-4 h-4" />
                 </button>
             </motion.div>
         );
@@ -103,13 +103,13 @@ function MealSlot({ type, meal, onAdd, onDelete }: MealSlotProps) {
         <button
             onClick={onAdd}
             className={cn(
-                'h-7 w-full rounded-md border border-dashed flex items-center justify-center gap-1 text-[10px] font-medium transition-all opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100',
+                'min-h-[44px] w-full rounded-md border border-dashed flex items-center justify-center gap-1 text-xs font-medium transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:opacity-100 focus:opacity-100 touch-manipulation',
                 type === 'LUNCH'
                     ? 'border-amber-200 text-amber-600 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/20'
                     : 'border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-900/20'
             )}
         >
-            <Plus className="w-3 h-3" />
+            <Plus className="w-4 h-4" />
             Add {type === 'LUNCH' ? 'Lunch' : 'Dinner'}
         </button>
     );

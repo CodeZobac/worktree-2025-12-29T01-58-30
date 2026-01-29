@@ -132,6 +132,10 @@ export default function RecipeDetailPage() {
 
   const isOwner = session?.user?.id === recipe.userId;
 
+  const handleBack = () => {
+    router.back();
+  };
+
   return (
     <>
       <div className="animate-in fade-in duration-500">
@@ -140,6 +144,7 @@ export default function RecipeDetailPage() {
           isOwner={isOwner}
           onEdit={isOwner ? handleEdit : undefined}
           onDelete={isOwner ? handleDeleteClick : undefined}
+          onBack={handleBack}
         />
       </div>
 

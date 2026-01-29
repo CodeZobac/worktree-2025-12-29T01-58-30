@@ -34,36 +34,41 @@ export function MonthView({ currentDate, mealPlans, onAddMeal, onDeleteMeal }: M
 
     return (
         <div className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
-            {/* Weekday Headers */}
-            <div className="grid grid-cols-7 border-b border-neutral-200 dark:border-neutral-800">
-                {weekDays.map((day) => (
-                    <div
-                        key={day}
-                        className="py-3 text-center text-xs font-medium text-neutral-500 uppercase tracking-wider"
-                    >
-                        {day}
+            {/* Scrollable container for mobile */}
+            <div className="overflow-x-auto">
+                <div className="min-w-[700px]">
+                    {/* Weekday Headers */}
+                    <div className="grid grid-cols-7 border-b border-neutral-200 dark:border-neutral-800">
+                        {weekDays.map((day) => (
+                            <div
+                                key={day}
+                                className="py-3 text-center text-xs font-medium text-neutral-500 uppercase tracking-wider"
+                            >
+                                {day}
+                            </div>
+                        ))}
                     </div>
-                ))}
-            </div>
 
-            {/* Calendar Grid */}
-            <div className="grid grid-cols-7 auto-rows-fr">
-                {days.map((day) => {
-                    const dayMeals = mealPlans.filter(
-                        (plan) => format(plan.date, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd')
-                    );
+                    {/* Calendar Grid */}
+                    <div className="grid grid-cols-7 auto-rows-fr">
+                        {days.map((day) => {
+                            const dayMeals = mealPlans.filter(
+                                (plan) => format(plan.date, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd')
+                            );
 
-                    return (
-                        <DayCell
-                            key={day.toString()}
-                            day={day}
-                            currentMonth={currentDate}
-                            mealPlans={dayMeals}
-                            onAddMeal={onAddMeal}
-                            onDeleteMeal={onDeleteMeal}
-                        />
-                    );
-                })}
+                            return (
+                                <DayCell
+                                    key={day.toString()}
+                                    day={day}
+                                    currentMonth={currentDate}
+                                    mealPlans={dayMeals}
+                                    onAddMeal={onAddMeal}
+                                    onDeleteMeal={onDeleteMeal}
+                                />
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
         </div>
     );

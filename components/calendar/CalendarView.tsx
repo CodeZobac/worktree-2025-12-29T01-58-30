@@ -129,19 +129,19 @@ export function CalendarView({ initialMealPlans, recipes, familyId, userId }: Ca
                     <div className="flex items-center bg-neutral-100 dark:bg-neutral-800 rounded-lg p-1">
                         <button
                             onClick={handlePrevious}
-                            className="p-1 hover:bg-white dark:hover:bg-neutral-700 rounded-md transition-colors"
+                            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white dark:hover:bg-neutral-700 rounded-md transition-colors touch-manipulation"
                         >
                             <ChevronLeft className="w-5 h-5" />
                         </button>
                         <button
                             onClick={() => setCurrentDate(new Date())}
-                            className="px-3 py-1 text-xs font-medium hover:bg-white dark:hover:bg-neutral-700 rounded-md transition-colors"
+                            className="px-3 py-2 min-h-[44px] text-sm font-medium hover:bg-white dark:hover:bg-neutral-700 rounded-md transition-colors touch-manipulation"
                         >
                             Today
                         </button>
                         <button
                             onClick={handleNext}
-                            className="p-1 hover:bg-white dark:hover:bg-neutral-700 rounded-md transition-colors"
+                            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white dark:hover:bg-neutral-700 rounded-md transition-colors touch-manipulation"
                         >
                             <ChevronRight className="w-5 h-5" />
                         </button>
@@ -152,26 +152,26 @@ export function CalendarView({ initialMealPlans, recipes, familyId, userId }: Ca
                     <button
                         onClick={() => setView('month')}
                         className={cn(
-                            'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all',
+                            'flex items-center gap-2 px-3 py-2 min-h-[44px] rounded-md text-sm font-medium transition-all touch-manipulation',
                             view === 'month'
                                 ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white'
                                 : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
                         )}
                     >
                         <LayoutGrid className="w-4 h-4" />
-                        Month
+                        <span className="hidden sm:inline">Month</span>
                     </button>
                     <button
                         onClick={() => setView('week')}
                         className={cn(
-                            'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all',
+                            'flex items-center gap-2 px-3 py-2 min-h-[44px] rounded-md text-sm font-medium transition-all touch-manipulation',
                             view === 'week'
                                 ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white'
                                 : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
                         )}
                     >
                         <List className="w-4 h-4" />
-                        Week
+                        <span className="hidden sm:inline">Week</span>
                     </button>
                 </div>
             </div>

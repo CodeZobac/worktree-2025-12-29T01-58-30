@@ -122,6 +122,28 @@
   }
 }
 
+/* Safe area insets for notched devices */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
+  }
+  .p-safe {
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+  }
+}
+
 /* Toast Animation */
 @keyframes fade-in {
   from {
@@ -165,4 +187,28 @@
 
 [cmdk-item][aria-selected="true"] * {
   color: white;
+}
+
+/* Print Styles for Recipe Detail */
+@media print {
+  /* Page setup */
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+
+  /* Ensure images print */
+  img {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Break pages appropriately */
+  .prose h1, .prose h2, .prose h3 {
+    break-after: avoid;
+  }
+
+  .prose p, .prose li {
+    break-inside: avoid;
+  }
 }

@@ -49,6 +49,29 @@ export default function RecipeCard3D({
     setLastY(offsetY);
   }
 
+  function handleTouch(e: React.TouchEvent<HTMLDivElement>) {
+    if (!ref.current || e.touches.length === 0) return;
+
+    const touch = e.touches[0];
+    const rect = ref.current.getBoundingClientRect();
+    const offsetX = touch.clientX - rect.left - rect.width / 2;
+    const offsetY = touch.clientY - rect.top - rect.height / 2;
+
+    const rotationX = (offsetY / (rect.height / 2)) * -rotateAmplitude;
+    const rotationY = (offsetX / (rect.width / 2)) * rotateAmplitude;
+
+    rotateX.set(rotationX);
+    rotateY.set(rotationY);
+    scale.set(scaleOnHover);
+    setLastY(offsetY);
+  }
+
+  function handleTouchEnd() {
+    scale.set(1);
+    rotateX.set(0);
+    rotateY.set(0);
+  }
+
   function handleMouseEnter() {
     scale.set(scaleOnHover);
   }
@@ -60,7 +83,10 @@ export default function RecipeCard3D({
   }
 
   const handleClick = () => {
-    router.push(`/recipes/${recipe.id}`);
+    // Delay navigation slightly to let the animation complete
+    setTimeout(() => {
+      router.push(`/recipes/${recipe.id}`);
+    }, 150);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -78,10 +104,13 @@ export default function RecipeCard3D({
       role="button"
       tabIndex={0}
       aria-label={`View recipe: ${recipe.name}`}
-      className="relative w-full h-full [perspective:1000px] cursor-pointer group"
+      className="relative w-full h-full [perspective:1000px] cursor-pointer group touch-none"
       onMouseMove={handleMouse}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onTouchStart={handleTouch}
+      onTouchMove={handleTouch}
+      onTouchEnd={handleTouchEnd}
       style={{
         aspectRatio: '210 / 297' // A4 ratio (portrait)
       }}
