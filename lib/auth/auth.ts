@@ -91,6 +91,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Return previous token if the access token has not expired yet
       // expiresAt is in seconds, Date.now() is in milliseconds
       if (token.expiresAt && Date.now() < ((token.expiresAt as number) * 1000)) {
+        // Always refresh familyId from DB - user may have joined a family since initial sign-in
+        if (token.email) {
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { email: token.email as string },
+              select: { familyId: true }
+            });
+            if (dbUser) {
+              token.familyId = dbUser.familyId;
+            }
+          } catch (error) {
+            console.error('Error refreshing familyId:', error);
+          }
+        }
         return token;
       }
 
@@ -114,12 +128,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!response.ok) throw tokens;
 
+        // Refresh familyId from DB when token is refreshed
+        let familyId = token.familyId;
+        if (token.email) {
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { email: token.email as string },
+              select: { familyId: true }
+            });
+            if (dbUser) {
+              familyId = dbUser.familyId;
+            }
+          } catch (error) {
+            console.error('Error refreshing familyId during token refresh:', error);
+          }
+        }
+
         return {
           ...token,
           accessToken: tokens.access_token,
           expiresAt: Math.floor(Date.now() / 1000 + tokens.expires_in),
           // Fall back to old refresh token if no new one provided
           refreshToken: tokens.refresh_token ?? token.refreshToken,
+          familyId,
         };
       } catch (error) {
         console.error("Error refreshing access token", error);

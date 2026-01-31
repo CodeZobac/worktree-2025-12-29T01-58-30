@@ -16,7 +16,12 @@ export async function GET(request: NextRequest) {
 
     const userData = await prisma.user.findUnique({
       where: { email: session.user.email },
-      select: { familyId: true }
+      select: { 
+        familyId: true,
+        family: {
+          select: { name: true }
+        }
+      }
     });
 
     if (!userData?.familyId) {
@@ -48,7 +53,10 @@ export async function GET(request: NextRequest) {
       recipeCount: member._count.recipes || 0,
     }));
 
-    return NextResponse.json(familyMembers);
+    return NextResponse.json({
+      members: familyMembers,
+      familyName: userData.family?.name || 'Family',
+    });
   } catch (error) {
     console.error('Unexpected error in GET /api/family/members:', error);
     return NextResponse.json(

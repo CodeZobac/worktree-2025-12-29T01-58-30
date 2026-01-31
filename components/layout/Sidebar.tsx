@@ -1,7 +1,8 @@
 "use client";
 
-import { Plus, X, Home } from "lucide-react";
+import { Plus, X, Home, BookOpen } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "motion/react";
 import { FamilyMemberList } from "@/components/family/FamilyMemberList";
@@ -30,6 +31,7 @@ export function Sidebar({
   houses = [],
 }: SidebarProps) {
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
@@ -161,6 +163,36 @@ export function Sidebar({
 
         {/* Family Members List - Touch-friendly scrolling */}
         <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
+          {/* Family Recipe Book Link */}
+          <div className="mb-4">
+            <motion.div
+              className="w-full"
+              whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Link
+                href="/family/recipes"
+                onClick={handleLinkClick}
+                className={`
+                  flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200
+                  touch-manipulation min-h-[52px] font-medium
+                  ${pathname === '/family/recipes'
+                    ? 'bg-orange-100 text-orange-700 border border-orange-200'
+                    : 'bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-100'
+                  }
+                `}
+              >
+                <div className="h-9 w-9 rounded-full bg-orange-200 flex items-center justify-center">
+                  <BookOpen className="h-5 w-5 text-orange-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">Family Recipe Book</p>
+                  <p className="text-xs text-orange-500">All family recipes</p>
+                </div>
+              </Link>
+            </motion.div>
+          </div>
+
           <h3 className="text-sm font-semibold text-sidebar-foreground mb-3 px-2">
             Family Members
           </h3>
